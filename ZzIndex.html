@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Place Value Chart Converter</title>
+<style>
+:root {
+--bg-color: #f4f6f8;
+--container-bg: #ffffff;
+--indian-header: #1e3a5f;
+--intl-header: #2c6e49;
+--text-main: #111827;
+--text-muted: #6b7280;
+--border-color: #d1d5db;
+}
+body {
+font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+background-color: var(--bg-color);
+color: var(--text-main);
+display: flex;
+justify-content: center;
+padding: 2rem 1rem;
+margin: 0;
+}
+.container {
+background-color: var(--container-bg);
+max-width: 900px;
+width: 100%;
+border-radius: 12px;
+box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+overflow: hidden;
+border: 1px solid var(--border-color);
+}
+.header-section {
+text-align: center;
+padding: 2rem 2rem 1rem;
+}
+.header-section h1 {
+margin: 0 0 1.5rem;
+font-size: 1.75rem;
+}
+.input-group {
+max-width: 500px;
+margin: 0 auto;
+}
+.input-group label {
+display: block;
+font-weight: 700;
+margin-bottom: 0.5rem;
+font-size: 0.875rem;
+text-transform: uppercase;
+letter-spacing: 0.05em;
+}
+input[type="text"] {
+width: 100%;
+padding: 1rem;
+font-size: 1.5rem;
+text-align: center;
+border: 3px solid var(--text-main);
+border-radius: 8px;
+box-sizing: border-box;
+outline: none;
+transition: border-color 0.2s;
+}
+input[type="text"]:focus {
+border-color: #2563eb;
+}
+.subtext {
+font-size: 0.75rem;
+color: var(--text-muted);
+margin-top: 0.5rem;
+}
+.results-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 1rem;
+padding: 2rem;
+background-color: #fafafa;
+border-top: 1px solid var(--border-color);
+}
+.panel {
+background: #fff;
+border-radius: 8px;
+border: 1px solid var(--border-color);
+overflow: hidden;
+display: flex;
+flex-direction: column;
+}
+.panel-header {
+color: #fff;
+padding: 1rem;
+text-align: center;
+font-weight: 700;
+letter-spacing: 0.05em;
+}
+.indian-panel .panel-header { background-color: var(--indian-header); }
+.intl-panel .panel-header { background-color: var(--intl-header); }
+.panel-content {
+padding: 1.5rem;
+text-align: center;
+flex-grow: 1;
+display: flex;
+flex-direction: column;
+justify-content: center;
+}
+.raw-number {
+font-family: monospace;
+font-size: 1rem;
+color: var(--text-muted);
+margin-bottom: 1rem;
+word-break: break-all;
+}
+.text-format {
+font-size: 1.5rem;
+font-weight: 800;
+margin-bottom: 0.5rem;
+}
+.cap-warning {
+color: #dc2626;
+}
+@media (max-width: 768px) {
+.results-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<div class="header-section">
+<h1>Place Value Chart Converter</h1>
+<div class="input-group">
+<label>Enter Number</label>
+<input type="text" id="numInput" placeholder="e.g. 1e27 or 100000000" autocomplete="off">
+<div class="subtext">(Supports standard digits, commas, and E-notation up to 10^66)</div>
+</div>
+</div>
+
+<div class="results-grid">
+<div class="panel indian-panel">
+<div class="panel-header">INDIAN SYSTEM</div>
+<div class="panel-content">
+<div class="raw-number" id="indRaw">-</div>
+<div class="text-format" id="indText">-</div>
+<div class="subtext" id="indSub">-</div>
+</div>
+</div>
+
+<div class="panel intl-panel">
+<div class="panel-header">INTERNATIONAL SYSTEM</div>
+<div class="panel-content">
+<div class="raw-number" id="intlRaw">-</div>
+<div class="text-format" id="intlText">-</div>
+<div class="subtext">(Scales beyond this to Decillion, Vigintillion, etc.)</div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+// 1. Data Dictionaries
+const intlScales = [
+{ v: 1e63, t: "Vigintillion" }, { v: 1e60, t: "Novemdecillion" }, { v: 1e57, t: "Octodecillion" },
+{ v: 1e54, t: "Septendecillion" }, { v: 1e51, t: "Sexdecillion" }, { v: 1e48, t: "Quindecillion" },
+{ v: 1e45, t: "Quattuordecillion" }, { v: 1e42, t: "Tredecillion" }, { v: 1e39, t: "Duodecillion" },
+{ v: 1e36, t: "Undecillion" }, { v: 1e33, t: "Decillion" }, { v: 1e30, t: "Nonillion" },
+{ v: 1e27, t: "Octillion" }, { v: 1e24, t: "Septillion" }, { v: 1e21, t: "Sextillion" },
+{ v: 1e18, t: "Quintillion" }, { v: 1e15, t: "Quadrillion" }, { v: 1e12, t: "Trillion" },
+{ v: 1e9, t: "Billion" }, { v: 1e6, t: "Million" }, { v: 1e3, t: "K" }, { v: 1, t: "" }
+];
+
+const indScales = [
+{ v: 1e19, t: "Mahashankh" }, { v: 1e17, t: "Shankh" }, { v: 1e15, t: "Padma" },
+{ v: 1e13, t: "Neel" }, { v: 1e11, t: "Kharab" }, { v: 1e9, t: "Arab" },
+{ v: 1e7, t: "Cr" }, { v: 1e5, t: "L" }, { v: 1e3, t: "K" }, { v: 1, t: "" }
+];
+
+// 2. DOM Elements
+const input = document.getElementById('numInput');
+const indRaw = document.getElementById('indRaw');
+const indText = document.getElementById('indText');
+const indSub = document.getElementById('indSub');
+const intlRaw = document.getElementById('intlRaw');
+const intlText = document.getElementById('intlText');
+
+// 3. String to BigInt Parser (Handles E-notation safely)
+function parseToBigInt(str) {
+str = str.toLowerCase().replace(/,/g, '').trim();
+if (!str) return null;
+
+try {
+if (str.includes('e')) {
+let parts = str.split('e');
+let base = parts[0] || "1";
+let exp = parseInt(parts[1], 10);
+
+if (base.includes('.')) {
+let decParts = base.split('.');
+let intPart = decParts[0];
+let decPart = decParts[1];
+let shift = decPart.length;
+if (exp >= shift) {
+return BigInt(intPart + decPart + '0'.repeat(exp - shift));
+}
+return null; // Negatives/fractions disabled for sandbox
+} else {
+return BigInt(base + '0'.repeat(exp));
+}
+}
+return BigInt(str);
+} catch (e) {
+return null;
+}
+}
+
+// 4. Mapping Logic
+function getFormat(bigIntVal, scales, isIndian) {
+if (bigIntVal === 0n) return "0";
+
+let strVal = bigIntVal.toString();
+let length = strVal.length;
+let magnitude = length - 1; // 10^magnitude
+
+// Indian System Cap Enforcement
+if (isIndian && magnitude >= 21) {
+return "<span class='cap-warning'>[Exceeds Modern Scale Limit]</span>";
+}
+
+// Find applicable scale
+for (let scale of scales) {
+let scaleZeros = Math.log10(scale.v);
+if (magnitude >= scaleZeros) {
+// Calculate the prefix (e.g., 100 for 100 Billion)
+let prefixStr = strVal.substring(0, length - scaleZeros);
+// Standardize comma placement for the prefix
+let prefixFormatted = isIndian
+? new Intl.NumberFormat('en-IN').format(BigInt(prefixStr))
+: new Intl.NumberFormat('en-US').format(BigInt(prefixStr));
+
+return `${prefixFormatted} ${scale.t}`.trim();
+}
+}
+return strVal;
+}
+
+// 5. Event Listener
+input.addEventListener('input', (e) => {
+let val = e.target.value;
+let bigNum = parseToBigInt(val);
+
+if (bigNum !== null) {
+// Raw Comma formatting
+indRaw.innerText = new Intl.NumberFormat('en-IN').format(bigNum);
+intlRaw.innerText = new Intl.NumberFormat('en-US').format(bigNum);
+
+// Text Mapping
+indText.innerHTML = getFormat(bigNum, indScales, true);
+intlText.innerHTML = getFormat(bigNum, intlScales, false);
+
+indSub.innerText = (bigNum.toString().length - 1 >= 21)
+? "(Standard terms max at Mahashankh 10^19. Archaic terms omitted for usability.)"
+: "(Scales accurately up to Mahashankh)";
+} else {
+// Reset UI on invalid input
+indRaw.innerText = "-"; indText.innerText = "-"; indSub.innerText = "-";
+intlRaw.innerText = "-"; intlText.innerText = "-";
+}
+});
+</script>
+
+</body>
+</html>
